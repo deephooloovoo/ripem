@@ -1,0 +1,19 @@
+CPUSTATE_DIR = bin/cpustate
+
+CPUSTATE_ELF = $(CPUSTATE_DIR)/cpustate.elf
+CPUSTATE_ZIMAGE=$(CPUSTATE_DIR)/zImage.o
+CPUSTATE_SRC = $(call LIST_SRCS,$(CPUSTATE_DIR))
+CPUSTATE_OBJ = $(call SUBST_OBJ,$(CPUSTATE_SRC),$(CPUSTATE_DIR))
+
+$(CPUSTATE_ELF): $(CPUSTATE_OBJ) $(CPUSTATE) $(LIBHPBSP) $(LIBHPUTILS) $(CPUSTATE_ZIMAGE)
+	$(ARM_LD) $(ARM_LDFLAGS) -T bin/cpustate/ldscript $^ -lgcc -o $@ --entry 0x31800000
+
+$(CPUSTATE_DIR)/%.o: $(CPUSTATE_DIR)/%.c
+	$(ARM_CC) $(ARM_CFLAGS) -c $< -o $@
+
+$(CPUSTATE_DIR)/%.o: $(CPUSTATE_DIR)/%.S
+	$(ARM_AS) $(ARM_AFLAGS) $< -o $@
+$(CPUSTATE_ZIMAGE): $(CPUSTATE_DIR)/zImage
+	$(ARM_OBJCOPY) -I binary -O elf32-littlearm -B arm --rename-section .data=.zimage $(CPUSTATE_DIR)/zImage $(CPUSTATE_ZIMAGE)
+BUILD_FILES += $(CPUSTATE_ELF)
+CLEAN_FILES += $(CPUSTATE_DIR)/*.elf $(CPUSTATE_DIR)/*.o
