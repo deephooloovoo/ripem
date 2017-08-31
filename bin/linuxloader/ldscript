@@ -1,0 +1,37 @@
+MEMORY
+{
+	dram : ORIGIN = 0x31800000, LENGTH = 32768K
+}
+
+PHDRS
+{
+	load PT_LOAD;
+}
+
+SECTIONS
+{
+	.startup : ALIGN(8) {
+		*(.startup*);
+	} >dram :load
+
+	.text : ALIGN(8) {
+		*(.text*);
+	} >dram :load
+
+	.data : ALIGN(8) {
+		*(.data*);
+	} >dram :load
+
+	.rodata : ALIGN(8) {
+		*(.rodata*);
+	} >dram :load
+
+	_bss_start = .;
+	.bss  : ALIGN(8) {
+		*(.bss*);
+	} >dram :load
+	_bss_end = .;
+	.zimage  : ALIGN(2048) {
+		*(.zimage*);
+	} >dram :load
+}
