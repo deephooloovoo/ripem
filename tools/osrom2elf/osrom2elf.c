@@ -27,7 +27,7 @@ typedef enum {
         CONV_OSROM2ELF
 } conv_mode;
 
-#define OSROM_SIZE  (1024*1024)
+#define OSROM_SIZE  (2*1024*1024)
 #define OSROM_DATA_OFFSET sizeof(OSROM_Hdr)
 #define OSROM_DATA_SIZE  (OSROM_SIZE - OSROM_DATA_OFFSET)
 
