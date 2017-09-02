@@ -9,6 +9,7 @@
 #include "drawing.h"
 #include "lib.h"
 #include "atag.h"
+#include "libfdt.h"
 //#include <stdint.h>
 
 //static uint8_t screen0[320*240*4];
@@ -48,10 +49,23 @@ void format_time(char *buf)
 		strcat(buf, "0");
 	strcat(buf, itoa(sec, buffer, 10));
 }
+void print_int(char *message,int i)
+{
+    char buf[128]={0};
+    char buf2[32]={0};
+    strcat(buf,message);
+    strcat(buf,itoa(i,buf2,10));
+    strcat(buf,"\n");
+    serial_puts(buf);
+}
 
 void disable_interrupts(void)
 {
     asm volatile ("MSR CPSR_c,0xd3":::);
+    uint32_t * intc_base =(uint32_t *) 0x4a000000;
+    *(intc_base+8) = 0xffffffff;
+    *(intc_base+0x1c) = 0xffffffff;
+    *(intc_base+0x48) = 0xffffffff;
 }
 void disable_mmu_cache(void)
 {
@@ -71,6 +85,10 @@ void disable_mmu_cache(void)
 
 extern uint32_t _binary_bin_linuxloader_zImage_start;
 extern uint32_t _binary_bin_linuxloader_zImage_end;
+extern uint32_t _binary_bin_linuxloader_initramfs_start;
+extern uint32_t _binary_bin_linuxloader_initramfs_end;
+extern uint32_t _binary_bin_linuxloader_prime_dtb_start;
+extern uint32_t _binary_bin_linuxloader_prime_dtb_end;
 void boot_linux(void)
 {
     char buf[40];
@@ -88,31 +106,42 @@ void boot_linux(void)
         serial_puts("\n");
     }
     void * kernel_start=(void *) 0x30000000+32768;
+    void * dtb_start=(void *) 0x30000100;
+
     uint32_t kernel_section_start = (uint32_t) &_binary_bin_linuxloader_zImage_start;
     uint32_t kernel_section_end = (uint32_t) &_binary_bin_linuxloader_zImage_end;
-    uint32_t kernel_size = ((uint32_t)&_binary_bin_linuxloader_zImage_end)-((uint32_t)&_binary_bin_linuxloader_zImage_start);
-    kernel_size=kernel_section_end-kernel_section_start;
+    uint32_t initramfs_section_start = (uint32_t) &_binary_bin_linuxloader_initramfs_start;
+    uint32_t initramfs_section_end = (uint32_t) &_binary_bin_linuxloader_initramfs_end;
+
+
+    uint32_t dtb_section_start = (uint32_t) &_binary_bin_linuxloader_prime_dtb_start;
+    uint32_t dtb_section_end = (uint32_t) &_binary_bin_linuxloader_prime_dtb_end;
+    uint32_t kernel_size=kernel_section_end-kernel_section_start;
+    uint32_t initramfs_size=initramfs_section_end-initramfs_section_start;
+    uint32_t dtb_size=dtb_section_end-dtb_section_start;
     serial_puts("starting copy");
     buf[0]=0;
     itoa(kernel_size,buf,10);
     serial_puts(buf);
     serial_puts("\n");
     memcpy(kernel_start, (void *) kernel_section_start, kernel_size);
-    serial_puts("finished copy");
-    setup_tags();
-    uint32_t * atags = (uint32_t *) 0x30000100;
+    fdt_open_into(dtb_section_start,dtb_start, 0x4000);
+    void * fdt = (void*) dtb_start;
+    int chosen = fdt_subnode_offset(fdt, 0, "chosen");   
+    print_int("chosen: ",chosen);
+    if (chosen == -FDT_ERR_NOTFOUND)
+    {
+        chosen = fdt_add_subnode(fdt,0,"chosen");
+    }
+    int ret = fdt_setprop_string(fdt, chosen, "bootargs", "root=/dev/ram console=ttySAC0,115200 earlyprintk debug init=/sbin/init");
+    print_int("ret: ",ret);
+    fdt_setprop_cell(fdt, chosen, "linux,initrd-start",initramfs_section_start);
+    fdt_setprop_cell(fdt, chosen, "linux,initrd-end",initramfs_section_end);
+    //setup_tags();
+    //uint32_t * atags = (uint32_t *) 0x30000100;
     void (*theKernel)(uint32_t zero, uint32_t arch, uint32_t * params);
     theKernel = (void (*)(uint32_t, uint32_t, uint32_t *))kernel_start;
-    theKernel(0,4938,atags);
-}
-void print_int(char *message,int i)
-{
-    char buf[128]={0};
-    char buf2[32]={0};
-    strcat(buf,message);
-    strcat(buf,itoa(i,buf2,10));
-    strcat(buf,"\n");
-    serial_puts(buf);
+    theKernel(0,4938,dtb_start);
 }
 
 

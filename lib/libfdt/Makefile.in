@@ -1,0 +1,18 @@
+LIBFDT_DIR = lib/libfdt
+
+LIBFDT     = $(LIBFDT_DIR)/libfdt.a
+LIBFDT_SRC = $(call LIST_SRCS,$(LIBFDT_DIR))
+LIBFDT_OBJ = $(call SUBST_OBJ,$(LIBFDT_SRC),$(LIBFDT_DIR))
+
+$(LIBFDT): $(LIBFDT_OBJ)
+	$(ARM_AR) rcs $@ $^
+
+$(LIBFDT_DIR)/%.o: $(LIBFDT_DIR)/%.c
+	$(ARM_CC) $(ARM_CFLAGS) -c $< -o $@
+
+$(LIBFDT_DIR)/%.o: $(LIBFDT_DIR)/%.S
+	$(ARM_AS) $(ARM_AFLAGS) $< -o $@
+
+ARM_CFLAGS += -I$(LIBFDT_DIR)
+BUILD_FILES += $(LIBFDT)
+CLEAN_FILES += $(LIBFDT_DIR)/*.a $(LIBFDT_DIR)/*.o

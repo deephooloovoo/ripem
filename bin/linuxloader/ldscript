@@ -34,4 +34,8 @@ SECTIONS
 	.zimage  : ALIGN(2048) {
 		*(.zimage*);
 	} >dram :load
+
+	.dtb  : ALIGN(2048) {
+		*(.dtb*);
+	} >dram :load
 }

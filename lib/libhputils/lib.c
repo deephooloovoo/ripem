@@ -24,6 +24,36 @@ void* memcpy(void *dst, const void *src, unsigned n) {
 
 	return u8_dst;
 }
+void *memchr(const void *s, int c, unsigned n) {
+    const uint8_t *u8_s = s;
+    uint8_t u8_c = c;
+    while (n--)
+    {
+        if (*u8_s++ == c)
+            return (u8_s--);
+    }
+    return 0;
+}
+
+void* memmove(void *dst, const void *src, unsigned n) {
+	uint8_t *u8_dst = dst;
+	const uint8_t *u8_src = src;
+
+    if ((unsigned) dst < (unsigned) src)
+    {
+	    while (n--)
+		    *u8_dst++ = *u8_src++;
+    }
+    else
+    {
+        u8_dst+=n;
+        u8_src+=n;
+	    while (n--)
+		    *--u8_dst = *--u8_src;
+    }
+        
+	return dst;
+}
 
 void* memset(void * dst, int val, unsigned n) {
 	uint8_t *u8_dst = dst;
@@ -69,6 +99,15 @@ int strlen(const char *str)
 	int s = 0;
 
 	while (*str++)
+		s++;
+
+	return s;
+}
+int strnlen(const char *str, unsigned n)
+{
+	int s = 0;
+
+	while (*str++ && s < n)
 		s++;
 
 	return s;
